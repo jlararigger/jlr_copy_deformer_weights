@@ -61,6 +61,7 @@ class CopyDeformerWeights(object):
 
         self.object_source_list = QtWidgets.QListWidget(self.source_group_box)
         self.object_source_list.setObjectName("object_source_list")
+        self.object_source_list.currentItemChanged.connect(lambda: self.update_source_deformer_list())
         self.source_list_layout.addWidget(self.object_source_list)
 
         self.deformer_source_list = QtWidgets.QListWidget(self.source_group_box)
@@ -93,6 +94,7 @@ class CopyDeformerWeights(object):
 
         self.object_target_list = QtWidgets.QListWidget(self.target_group_box)
         self.object_target_list.setObjectName("object_target_list")
+        self.object_target_list.currentItemChanged.connect(lambda: self.update_target_deformer_list())
         self.target_list_layout.addWidget(self.object_target_list)
 
         self.deformer_target_list = QtWidgets.QListWidget(self.target_group_box)

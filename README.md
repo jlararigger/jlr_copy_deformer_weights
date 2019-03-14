@@ -10,9 +10,8 @@ Tool for copy the deformer weights from one deformer to other deformer.
 
 1- Copy this script file to your scripts directory.
 
-2- In the userSetup.py add the following lines:
+2- In the script editor add the following lines:
 
-    import maya.cmds as cmds
-    import jlr_copy_deformer_weights
+    import jlr_copy_deformer_weights as cdw
     
-    cmds.evalDeferred('jlr_copy_deformer_weights.create_menu_commands()')
+    cdw.open_copy_deformer_weights()

@@ -8,7 +8,7 @@ Tool for copy the deformer weights from one deformer to other deformer.
 
 **Install:**
 
-1- Copy this script file to your scripts directory.
+1- Copy the script file "jlr_copy_deformer_weights.py" into your scripts directory.
 
 2- In the script editor add the following lines:
 

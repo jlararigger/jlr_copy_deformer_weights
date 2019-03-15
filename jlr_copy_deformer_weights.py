@@ -136,6 +136,8 @@ class CopyDeformerWeights(object):
         self.progress_label.setAlignment(QtCore.Qt.AlignCenter)
         self.progress_bar_layout.addWidget(self.progress_label)
         self.main_layout.addLayout(self.progress_bar_layout)
+        self._progress_bar_steps = 8
+        self._progress_bar_value = -1
 
         self.buttons_group_box = QtWidgets.QGroupBox(self.dialog)
         self.buttons_group_box.setTitle("")
@@ -158,6 +160,49 @@ class CopyDeformerWeights(object):
 
         self.main_layout.addWidget(self.buttons_group_box)
         self.dialog_layout.addLayout(self.main_layout, 0, 0, 1, 1)
+
+    @property
+    def progress_bar_steps(self):
+        return self._progress_bar_steps
+
+    @progress_bar_steps.setter
+    def progress_bar_steps(self, value):
+        assert isinstance(value, int), "Progress Bar Steps must be a integer"
+        self._progress_bar_steps = value
+
+    @property
+    def progress_bar_value(self):
+        return self._progress_bar_value
+
+    @progress_bar_value.setter
+    def progress_bar_value(self, value):
+        assert isinstance(value, (int, float)), "Progress Bar Value must be a integer or float"
+        self._progress_bar_value = value
+
+    def progress_bar_init(self):
+        """
+        Hide the label and initialize the progress bar.
+        """
+        self.progress_label.hide()
+        self.progress_bar_value = 0
+        self.progress_bar.show()
+        self.progress_bar_layout.update()
+
+    def progress_bar_next(self):
+        """
+        Update the progress bar value.
+        """
+        self.progress_bar_value += 1
+        print self.progress_bar_value
+        self.progress_bar.setValue((100.0 / self.progress_bar_steps) * self.progress_bar_value)
+
+    def progress_bar_ends(self, message):
+        """
+        Closes the progress bar and show label with a message.
+        """
+        self.progress_bar.hide()
+        self.progress_label.show()
+        self.progress_label.setText(message)
 
     def get_source_items(self):
         """
@@ -250,6 +295,7 @@ class CopyDeformerWeights(object):
                     "deformer_source": pm.PyNode(deformer_source.text()),
                     "deformer_target": pm.PyNode(deformer_target.text()),
                     }
+
             self.transfer_deformer_weights(**data)
 
     def show(self):
@@ -277,15 +323,6 @@ class CopyDeformerWeights(object):
         if pm.window(self.dialog_name, exists=True):
             pm.deleteUI(self.dialog_name)
 
-    def update_progress_bar(self, step, steps_total):
-        """
-        Update the progress bar value.
-        :param step: integer
-        :param steps_total: integer
-        """
-        progress_increment = 100.0 / (steps_total - 0)
-        self.progress_bar.setValue(progress_increment * step)
-
     def transfer_deformer_weights(self, geo_source, geo_target=None, deformer_source=None, deformer_target=None,
                                   surface_association="closestPoint"):
         """
@@ -304,21 +341,18 @@ class CopyDeformerWeights(object):
         if not geo_target:
             geo_target = geo_source
 
-        self.progress_label.hide()
-        self.progress_bar.show()
-        self.progress_bar_layout.update()
-
-        self.update_progress_bar(step=1, steps_total=8)
+        self.progress_bar_init()
+        self.progress_bar_next()
 
         deformer_source_weights = deformer_source.weightList[0].weights.get()
 
-        self.update_progress_bar(step=2, steps_total=8)
+        self.progress_bar_next()
         tmp_source = pm.duplicate(geo_source)[0]
         tmp_target = pm.duplicate(geo_target)[0]
         tmp_source.v.set(True)
         tmp_target.v.set(True)
 
-        self.update_progress_bar(step=3, steps_total=8)
+        self.progress_bar_next()
         pm.select(clear=True)
         l_jnt = list()
         l_jnt.append(pm.joint(n="jnt_tmpA_01", p=[0, 0, 0]))
@@ -326,28 +360,26 @@ class CopyDeformerWeights(object):
         skin_source = pm.skinCluster(l_jnt, tmp_source, nw=1)
         skin_target = pm.skinCluster(l_jnt, tmp_target, nw=1)
 
-        self.update_progress_bar(step=4, steps_total=8)
+        self.progress_bar_next()
         skin_source.setNormalizeWeights(0)
         pm.skinPercent(skin_source, tmp_source, nrm=False, prw=100)
         skin_source.setNormalizeWeights(True)
         [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 0), value) for i, value in enumerate(deformer_source_weights)]
         [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 1), 1.0 - value) for i, value in enumerate(deformer_source_weights)]
 
-        self.update_progress_bar(step=5, steps_total=8)
+        self.progress_bar_next()
         pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa=surface_association)
 
-        self.update_progress_bar(step=6, steps_total=8)
+        self.progress_bar_next()
         deformer_target_weights = [v for v in skin_target.getWeights(tmp_target, 0)]
         [deformer_target.weightList[0].weights[i].set(val) for i, val in enumerate(deformer_target_weights)]
 
-        self.update_progress_bar(step=7, steps_total=8)
+        self.progress_bar_next()
         pm.delete([tmp_source, tmp_target, l_jnt])
         pm.select(previous_selection)
 
-        self.update_progress_bar(step=8, steps_total=8)
-        self.progress_bar.hide()
-        self.progress_label.show()
-        self.progress_label.setText("Finished successfully!")
+        self.progress_bar_next()
+        self.progress_bar_ends(message="Finished successfully!")
 
 
 def open_copy_deformer_weights():

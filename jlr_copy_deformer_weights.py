@@ -1,46 +1,62 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from PySide2 import QtCore, QtGui, QtWidgets
+##################################################################################
+# jlr_copy_deformer_weights.py - Python Script
+##################################################################################
+# Description:
+# This tool was created to copy the weight map of a deformer of an object to the deformer of another object.
+#
+# The deformers do not have to be of the same type between them. It is possible to copy the weight map of
+# a wire deformer into a weight map of a cluster deformer or other deformer.
+#
+# Author: Juan Lara.
+##################################################################################
+# 1- Copy the script file "jlr_copy_deformer_weights.py" into your scripts directory.
+# 2- In the script editor add the following lines:
+#
+#   import jlr_copy_deformer_weights as cdw
+#   cdw.open_copy_deformer_weights()
+#
+##################################################################################
+
+
+from PySide2 import QtCore, QtWidgets
 from shiboken2 import wrapInstance
-from maya import OpenMayaUI as Omui
+from maya import OpenMayaUI
 
 import pymel.core as pm
 
 
-def open_copy_deformer_weights():
-    ui = CopyDeformerWeights()
-    ui.show()
-
-
 class CopyDeformerWeights(object):
+    """
+    CopyDeformerWeights Class
+    """
 
     def __init__(self):
+        """
+        Create the CopyDeformerWeights UI
+        """
         self.dialog = QtWidgets.QDialog()
         self.dialog_name = "copy_deformer_weights_dialog"
         self.delete_instances()
 
-        # Parent widget under Maya main window
-        maya_main_window_ptr = Omui.MQtUtil.mainWindow()
+        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
         maya_main_window = wrapInstance(long(maya_main_window_ptr), QtWidgets.QMainWindow)
         self.dialog.setParent(maya_main_window)
         self.dialog.setWindowFlags(QtCore.Qt.Window)
 
-        self.setup_ui(self.dialog)
+        self.dialog.setObjectName(self.dialog_name)
+        self.dialog.setFixedSize(400, 500)
+        self.dialog.setWindowTitle("Copy Deformer Weights")
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName(self.dialog_name)
-        # dialog.resize(400, 400)
-        dialog.setFixedSize(400, 500)
-        dialog.setWindowTitle("Copy Deformer Weights")
-
-        self.dialog_layout = QtWidgets.QGridLayout(dialog)
+        self.dialog_layout = QtWidgets.QGridLayout(self.dialog)
         self.dialog_layout.setObjectName("dialog_layout")
 
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.setObjectName("main_layout")
 
-        self.source_group_box = QtWidgets.QGroupBox(dialog)
+        self.source_group_box = QtWidgets.QGroupBox(self.dialog)
         self.source_group_box.setObjectName("source_group_box")
         self.source_group_box.setTitle("Source")
 
@@ -73,7 +89,7 @@ class CopyDeformerWeights(object):
 
         self.main_layout.addWidget(self.source_group_box)
 
-        self.target_group_box = QtWidgets.QGroupBox(dialog)
+        self.target_group_box = QtWidgets.QGroupBox(self.dialog)
         self.target_group_box.setObjectName("target_group_box")
         self.target_group_box.setTitle("Target")
 
@@ -107,21 +123,21 @@ class CopyDeformerWeights(object):
 
         self.progress_bar_layout = QtWidgets.QVBoxLayout()
         self.progress_bar_layout.setObjectName("progress_bar_layout")
-        self.progress_bar = QtWidgets.QProgressBar(dialog)
+        self.progress_bar = QtWidgets.QProgressBar(self.dialog)
 
         self.progress_bar.setProperty("value", -1)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setObjectName("progress_bar")
         self.progress_bar_layout.addWidget(self.progress_bar)
 
-        self.progress_label = QtWidgets.QLabel(dialog)
+        self.progress_label = QtWidgets.QLabel(self.dialog)
         self.progress_label.setObjectName("progress_label")
         self.progress_label.setMinimumSize(QtCore.QSize(0, 21))
         self.progress_label.setAlignment(QtCore.Qt.AlignCenter)
         self.progress_bar_layout.addWidget(self.progress_label)
         self.main_layout.addLayout(self.progress_bar_layout)
 
-        self.buttons_group_box = QtWidgets.QGroupBox(dialog)
+        self.buttons_group_box = QtWidgets.QGroupBox(self.dialog)
         self.buttons_group_box.setTitle("")
         self.buttons_group_box.setObjectName("buttons_group_box")
 
@@ -143,36 +159,59 @@ class CopyDeformerWeights(object):
         self.main_layout.addWidget(self.buttons_group_box)
         self.dialog_layout.addLayout(self.main_layout, 0, 0, 1, 1)
 
-        QtCore.QMetaObject.connectSlotsByName(dialog)
-
     def get_source_items(self):
+        """
+        Gets the selected objects in the scene and fills the source lists.
+        """
         if pm.selected():
             self.update_source_list(pm.selected())
             self.update_source_deformer_list()
 
     def update_source_list(self, l_items):
+        """
+        Fills the source list widget.
+        :param l_items: list with the name of source objects.
+        """
         if l_items:
             self.populate_list_widget(self.object_source_list, l_items)
 
     def update_source_deformer_list(self):
+        """
+        Fills the list of deformers according to the selected object in the source object list.
+        """
         item = pm.PyNode(self.object_source_list.currentItem().text())
         self.populate_list_widget(self.deformer_source_list, self.get_deformer_list(item))
 
     def get_target_items(self):
+        """
+        Gets the selected objects in the scene and fills the target lists.
+        """
         if pm.selected():
             self.update_target_list(pm.selected())
             self.update_target_deformer_list()
 
     def update_target_list(self, l_items):
+        """
+        Updates the target list widget.
+        :param l_items: list with the name of target objects.
+        """
         if l_items:
             self.populate_list_widget(self.object_target_list, l_items)
 
     def update_target_deformer_list(self):
+        """
+        Fills the list of deformers according to the selected object in the target object list.
+        """
         item = pm.PyNode(self.object_target_list.currentItem().text())
         self.populate_list_widget(self.deformer_target_list, self.get_deformer_list(item))
 
     @staticmethod
     def get_deformer_list(item):
+        """
+        Returns a list with the deformers connected to a object.
+        :param item: PyNode with shapes
+        :return: list
+        """
         if pm.objExists(item):
             shape = item.getShapes()[0]
             deformer_list = pm.listHistory(shape, ha=1, il=1, pdo=1)
@@ -183,6 +222,11 @@ class CopyDeformerWeights(object):
 
     @staticmethod
     def populate_list_widget(list_widget, l_items):
+        """
+        Fills a QListWidget with the passed list.
+        :param list_widget: QListWidget
+        :param l_items: list of PyNodes.
+        """
         list_widget.clear()
         for item in l_items:
             list_widget_item = QtWidgets.QListWidgetItem()
@@ -192,6 +236,9 @@ class CopyDeformerWeights(object):
         list_widget.setCurrentRow(0)
 
     def copy_deformer_weights(self):
+        """
+        Checks if the selected items are a valid selection and call the copy function.
+        """
         geo_source = self.object_source_list.currentItem()
         geo_target = self.object_target_list.currentItem()
         deformer_source = self.deformer_source_list.currentItem()
@@ -206,6 +253,11 @@ class CopyDeformerWeights(object):
             self.transfer_deformer_weights(**data)
 
     def show(self):
+        """
+        Shows the CopyDeformerWeights UI.
+        If there are selected items previously in the scene, the first selected item will be loaded as source object
+        and the rest of objects will be loaded as target objects.
+        """
         self.dialog.show()
         self.progress_bar.hide()
         self.progress_label.setText("Select the objects and its deformers")
@@ -219,16 +271,31 @@ class CopyDeformerWeights(object):
                 self.update_target_deformer_list()
 
     def delete_instances(self):
+        """
+        Deletes the UI
+        """
         if pm.window(self.dialog_name, exists=True):
             pm.deleteUI(self.dialog_name)
 
-    def update_progress_bar(self, step):
-        progress_steps = 8
-        progress_increment = 100.0/(progress_steps-0)
-        self.progress_bar.setValue(progress_increment*step)
+    def update_progress_bar(self, step, steps_total):
+        """
+        Update the progress bar value.
+        :param step: integer
+        :param steps_total: integer
+        """
+        progress_increment = 100.0 / (steps_total - 0)
+        self.progress_bar.setValue(progress_increment * step)
 
-    def transfer_deformer_weights(self, geo_source, geo_target=None, deformer_source=None, deformer_target=None):
-
+    def transfer_deformer_weights(self, geo_source, geo_target=None, deformer_source=None, deformer_target=None,
+                                  surface_association="closestPoint"):
+        """
+        Copies the weight map of a deformer of an object to the deformer of another object.
+        :param geo_source: Source Shape
+        :param geo_target: Target Shape
+        :param deformer_source: Source Deformer
+        :param deformer_target: Target Deformer
+        :param surface_association: Surface Association. Valid values: closestPoint, rayCast, or closestComponent.
+        """
         assert geo_source and deformer_source and deformer_target, \
             "select a source and target geometry and then the source and target deformers"
 
@@ -241,17 +308,17 @@ class CopyDeformerWeights(object):
         self.progress_bar.show()
         self.progress_bar_layout.update()
 
-        self.update_progress_bar(step=1)
+        self.update_progress_bar(step=1, steps_total=8)
 
         deformer_source_weights = deformer_source.weightList[0].weights.get()
 
-        self.update_progress_bar(step=2)
+        self.update_progress_bar(step=2, steps_total=8)
         tmp_source = pm.duplicate(geo_source)[0]
         tmp_target = pm.duplicate(geo_target)[0]
         tmp_source.v.set(True)
         tmp_target.v.set(True)
 
-        self.update_progress_bar(step=3)
+        self.update_progress_bar(step=3, steps_total=8)
         pm.select(clear=True)
         l_jnt = list()
         l_jnt.append(pm.joint(n="jnt_tmpA_01", p=[0, 0, 0]))
@@ -259,27 +326,33 @@ class CopyDeformerWeights(object):
         skin_source = pm.skinCluster(l_jnt, tmp_source, nw=1)
         skin_target = pm.skinCluster(l_jnt, tmp_target, nw=1)
 
-        self.update_progress_bar(step=4)
+        self.update_progress_bar(step=4, steps_total=8)
         skin_source.setNormalizeWeights(0)
         pm.skinPercent(skin_source, tmp_source, nrm=False, prw=100)
         skin_source.setNormalizeWeights(True)
         [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 0), value) for i, value in enumerate(deformer_source_weights)]
         [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 1), 1.0 - value) for i, value in enumerate(deformer_source_weights)]
 
-        self.update_progress_bar(step=5)
-        pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa="closestPoint")
+        self.update_progress_bar(step=5, steps_total=8)
+        pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa=surface_association)
 
-        self.update_progress_bar(step=6)
+        self.update_progress_bar(step=6, steps_total=8)
         deformer_target_weights = [v for v in skin_target.getWeights(tmp_target, 0)]
         [deformer_target.weightList[0].weights[i].set(val) for i, val in enumerate(deformer_target_weights)]
 
-        self.update_progress_bar(step=7)
+        self.update_progress_bar(step=7, steps_total=8)
         pm.delete([tmp_source, tmp_target, l_jnt])
         pm.select(previous_selection)
 
-        self.update_progress_bar(step=8)
+        self.update_progress_bar(step=8, steps_total=8)
         self.progress_bar.hide()
         self.progress_label.show()
         self.progress_label.setText("Finished successfully!")
 
 
+def open_copy_deformer_weights():
+    """
+    Open the Copy Deformer Weights UI.
+    """
+    ui = CopyDeformerWeights()
+    ui.show()

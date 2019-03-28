@@ -20,7 +20,6 @@
 #
 ##################################################################################
 
-
 from PySide2 import QtCore, QtWidgets
 from shiboken2 import wrapInstance
 from maya import OpenMayaUI
@@ -193,7 +192,6 @@ class CopyDeformerWeights(object):
         Update the progress bar value.
         """
         self.progress_bar_value += 1
-        print self.progress_bar_value
         self.progress_bar.setValue((100.0 / self.progress_bar_steps) * self.progress_bar_value)
 
     def progress_bar_ends(self, message):
@@ -260,7 +258,8 @@ class CopyDeformerWeights(object):
         if pm.objExists(item):
             shape = item.getShapes()[0]
             deformer_list = pm.listHistory(shape, ha=1, il=1, pdo=1)
-            deformer_list = list(filter(lambda x: x.type() in ["ffd", "skinCluster", "wire", "cluster"], deformer_list))
+            deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush"]
+            deformer_list = list(filter(lambda x: x.type() in deformer_types, deformer_list))
             return deformer_list
         else:
             return list()
@@ -344,11 +343,25 @@ class CopyDeformerWeights(object):
         self.progress_bar_init()
         self.progress_bar_next()
 
-        deformer_source_weights = deformer_source.weightList[0].weights.get()
+        source_weight_list = self.get_weight_list(deformer_source, geo_source)
+        if not source_weight_list:
+            pm.warning("The deformer {} does not have the weight list for {}".format(deformer_source, geo_source))
+            self.progress_bar_ends(message="Finished with errors!")
+            return
+
+        target_weight_list = self.get_weight_list(deformer_target, geo_target)
+        if not target_weight_list:
+            pm.warning("The deformer {} does not have the weight list for {}".format(deformer_target, geo_target))
+            self.progress_bar_ends(message="Finished with errors!")
+            return
+
+        self.initialize_weight_list(target_weight_list, geo_target)
 
         self.progress_bar_next()
         tmp_source = pm.duplicate(geo_source)[0]
         tmp_target = pm.duplicate(geo_target)[0]
+        pm.rename(tmp_source, tmp_source.nodeName() + "_cdw_DUP")
+        pm.rename(tmp_target, tmp_target.nodeName() + "_cdw_DUP")
         tmp_source.v.set(True)
         tmp_target.v.set(True)
 
@@ -364,15 +377,16 @@ class CopyDeformerWeights(object):
         skin_source.setNormalizeWeights(0)
         pm.skinPercent(skin_source, tmp_source, nrm=False, prw=100)
         skin_source.setNormalizeWeights(True)
-        [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 0), value) for i, value in enumerate(deformer_source_weights)]
-        [pm.setAttr('{}.wl[{}].w[{}]'.format(skin_source, i, 1), 1.0 - value) for i, value in enumerate(deformer_source_weights)]
+        n_points = len(geo_source.getShape().getPoints())
+        [skin_source.wl[i].w[0].set(source_weight_list.weights[i].get()) for i in range(n_points)]
+        [skin_source.wl[i].w[1].set(1.0 - source_weight_list.weights[i].get()) for i in range(n_points)]
 
         self.progress_bar_next()
         pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa=surface_association)
 
         self.progress_bar_next()
         deformer_target_weights = [v for v in skin_target.getWeights(tmp_target, 0)]
-        [deformer_target.weightList[0].weights[i].set(val) for i, val in enumerate(deformer_target_weights)]
+        [target_weight_list.weights[i].set(val) for i, val in enumerate(deformer_target_weights)]
 
         self.progress_bar_next()
         pm.delete([tmp_source, tmp_target, l_jnt])
@@ -380,6 +394,26 @@ class CopyDeformerWeights(object):
 
         self.progress_bar_next()
         self.progress_bar_ends(message="Finished successfully!")
+
+    def get_weight_list(self, in_deformer, in_mesh):
+        for index, each_input in enumerate(in_deformer.input):
+            shape = in_mesh.getShape()
+            l_connections = each_input.inputGeometry.listConnections(s=1, d=0)
+            if l_connections:
+                l_history = l_connections[0].listHistory(f=1)
+                l_mesh = list(filter(lambda x: type(x) == type(shape), l_history))
+                l_mesh = [str(mesh.nodeName()) for mesh in l_mesh]
+                if str(shape.nodeName()) in l_mesh:
+                    weight_list = in_deformer.weightList[index]
+                    if not weight_list:
+                        self.initialize_weight_list(in_deformer.weightList[index], in_mesh)
+
+                    return in_deformer.weightList[index]
+
+    @staticmethod
+    def initialize_weight_list(weight_list, in_mesh):
+        n_points = len(in_mesh.getShape().getPoints())
+        [weight_list.weights[i_point].set(1) for i_point in range(n_points)]
 
 
 def open_copy_deformer_weights():

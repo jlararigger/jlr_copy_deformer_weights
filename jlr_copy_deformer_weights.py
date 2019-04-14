@@ -12,6 +12,14 @@
 #
 # Author: Juan Lara.
 ##################################################################################
+# 1- Copy the scripts files "jlr_copy_deformer_weights_UI.py" and "jlr_copy_deformer_weights_.py" into your
+# scripts directory.
+# 2- In the script editor add the following lines:
+#
+#   import jlr_copy_deformer_weights as cdw
+#   cdw.open_copy_deformer_weights()
+#
+##################################################################################
 
 import pymel.core as pm
 
@@ -112,3 +120,14 @@ def get_weight_list(in_deformer, in_mesh):
 def initialize_weight_list(weight_list, in_mesh):
     n_points = len(in_mesh.getShape().getPoints())
     [weight_list.weights[i_point].set(1) for i_point in range(n_points)]
+
+
+def open_copy_deformer_weights():
+    """
+    Open the Copy Deformer Weights UI.
+    """
+    import jlr_copy_deformer_weights_UI as cdwUI
+    reload(cdwUI)
+    ui = cdwUI.CopyDeformerWeightsUI()
+    ui.transfer_function = transfer_deformer_weights
+    ui.show()

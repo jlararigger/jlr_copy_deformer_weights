@@ -12,23 +12,12 @@
 #
 # Author: Juan Lara.
 ##################################################################################
-# 1- Copy the scripts files "jlr_copy_deformer_weights_UI.py" and "jlr_copy_deformer_weights_.py" into your
-# scripts directory.
-# 2- In the script editor add the following lines:
-#
-#   import jlr_copy_deformer_weights_UI as cdw
-#   cdw.open_copy_deformer_weights()
-#
-##################################################################################
 
 from PySide2 import QtCore, QtWidgets
 from shiboken2 import wrapInstance
 from maya import OpenMayaUI
 
-import jlr_copy_deformer_weights as cdw
 import pymel.core as pm
-
-reload(cdw)
 
 
 class CopyDeformerWeightsUI(object):
@@ -37,6 +26,8 @@ class CopyDeformerWeightsUI(object):
     """
 
     def __init__(self):
+        self.transfer_function = None
+
         """
         Create the CopyDeformerWeights UI
         """
@@ -287,6 +278,8 @@ class CopyDeformerWeightsUI(object):
         """
         Checks if the selected items are a valid selection and call the copy function.
         """
+        assert self.transfer_function is not None, "The transfer_function variable must be contain a transfer_function function."
+
         geo_source = self.object_source_list.currentItem()
         geo_target = self.object_target_list.currentItem()
         deformer_source = self.deformer_source_list.currentItem()
@@ -301,7 +294,7 @@ class CopyDeformerWeightsUI(object):
                     "interface": self,
                     }
 
-            cdw.transfer_deformer_weights(**data)
+            self.transfer_function(**data)
 
     def show(self):
         """
@@ -329,9 +322,3 @@ class CopyDeformerWeightsUI(object):
             pm.deleteUI(self.dialog_name)
 
 
-def open_copy_deformer_weights():
-    """
-    Open the Copy Deformer Weights UI.
-    """
-    ui = CopyDeformerWeightsUI()
-    ui.show()

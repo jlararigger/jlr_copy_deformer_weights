@@ -253,7 +253,7 @@ class CopyDeformerWeightsUI(object):
         if pm.objExists(item):
             shape = item.getShapes()[0]
             deformer_list = pm.listHistory(shape, ha=1, il=1, pdo=1)
-            deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer"]
+            deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear"]
             deformer_list = list(filter(lambda x: x.type() in deformer_types, deformer_list))
             return deformer_list
         else:

@@ -11,6 +11,7 @@
 # a wire deformer into a weight map of a cluster deformer or other deformer.
 #
 # Author: Juan Lara.
+# Version: 1.0.1
 ##################################################################################
 # 1- Copy the scripts files "jlr_copy_deformer_weights_UI.py" and "jlr_copy_deformer_weights_.py" into your
 # scripts directory.
@@ -102,19 +103,21 @@ def transfer_deformer_weights(geo_source, geo_target=None, deformer_source=None,
 
 
 def get_weight_list(in_deformer, in_mesh):
+    shape = in_mesh.getShape()
+    n_points = len(shape.getPoints())
     for index, each_input in enumerate(in_deformer.input):
-        shape = in_mesh.getShape()
         l_connections = each_input.inputGeometry.listConnections(s=1, d=0)
         if l_connections:
             l_history = l_connections[0].listHistory(f=1)
             l_mesh = list(filter(lambda x: type(x) == type(shape), l_history))
             l_mesh = [str(mesh.nodeName()) for mesh in l_mesh]
             if str(shape.nodeName()) in l_mesh:
-                weight_list = in_deformer.weightList[index]
-                if not weight_list:
+                if not in_deformer.weightList[index]:
                     initialize_weight_list(in_deformer.weightList[index], in_mesh)
-
-                return in_deformer.weightList[index]
+                weight_list = in_deformer.weightList[index]
+                wgt_indexes = map(lambda _: _.index(), weight_list.weights)
+                [weight_list.weights[index].set(0) for index in range(n_points) if index not in wgt_indexes]
+                return weight_list
 
 
 def initialize_weight_list(weight_list, in_mesh):

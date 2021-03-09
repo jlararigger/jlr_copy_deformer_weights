@@ -41,7 +41,7 @@ class CopyDeformerWeightsUI(object):
         self.dialog.setWindowFlags(QtCore.Qt.Window)
 
         self.dialog.setObjectName(self.dialog_name)
-        self.dialog.setFixedSize(400, 500)
+        # self.dialog.setFixedSize(400, 500)
         self.dialog.setWindowTitle("Copy Deformer Weights")
 
         self.dialog_layout = QtWidgets.QGridLayout(self.dialog)
@@ -250,10 +250,12 @@ class CopyDeformerWeightsUI(object):
         :param item: PyNode with shapes
         :return: list
         """
+        deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear"]
         if pm.objExists(item):
-            shape = item.getShapes()[0]
-            deformer_list = pm.listHistory(shape, ha=1, il=1, pdo=1)
-            deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear"]
+            deformer_list = list()
+            for shape in item.getShapes():
+                deformer_list.extend(pm.listHistory(shape, ha=1, il=1, pdo=1))
+
             deformer_list = list(filter(lambda x: x.type() in deformer_types, deformer_list))
             return deformer_list
         else:
@@ -266,6 +268,7 @@ class CopyDeformerWeightsUI(object):
         :param list_widget: QListWidget
         :param l_items: list of PyNodes.
         """
+        list_widget.blockSignals(True)
         list_widget.clear()
         for item in l_items:
             list_widget_item = QtWidgets.QListWidgetItem()
@@ -273,6 +276,7 @@ class CopyDeformerWeightsUI(object):
             list_widget.addItem(list_widget_item)
 
         list_widget.setCurrentRow(0)
+        list_widget.blockSignals(False)
 
     def copy_deformer_weights(self):
         """

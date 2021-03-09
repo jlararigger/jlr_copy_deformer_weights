@@ -90,7 +90,8 @@ def transfer_deformer_weights(geo_source, geo_target=None, deformer_source=None,
     pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa=surface_association)
 
     if interface: interface.progress_bar_next()
-    deformer_target_weights = [v for v in skin_target.getWeights(tmp_target, 0)]
+    tmp_shape = skin_target.getGeometry()[0]
+    deformer_target_weights = [v for v in skin_target.getWeights(tmp_shape, 0)]
     [target_weight_list.weights[i].set(val) for i, val in enumerate(deformer_target_weights)]
 
     if interface: interface.progress_bar_next()
@@ -103,21 +104,21 @@ def transfer_deformer_weights(geo_source, geo_target=None, deformer_source=None,
 
 
 def get_weight_list(in_deformer, in_mesh):
-    shape = in_mesh.getShape()
-    n_points = len(shape.getPoints())
-    for index, each_input in enumerate(in_deformer.input):
-        l_connections = each_input.inputGeometry.listConnections(s=1, d=0)
-        if l_connections:
-            l_history = l_connections[0].listHistory(f=1)
-            l_mesh = list(filter(lambda x: type(x) == type(shape), l_history))
-            l_mesh = [str(mesh.nodeName()) for mesh in l_mesh]
-            if str(shape.nodeName()) in l_mesh:
-                if not in_deformer.weightList[index]:
-                    initialize_weight_list(in_deformer.weightList[index], in_mesh)
-                weight_list = in_deformer.weightList[index]
-                wgt_indexes = map(lambda _: _.index(), weight_list.weights)
-                [weight_list.weights[index].set(0) for index in range(n_points) if index not in wgt_indexes]
-                return weight_list
+    for shape in in_mesh.getShapes():
+        n_points = len(shape.getPoints())
+        for index, each_input in enumerate(in_deformer.input):
+            l_connections = each_input.inputGeometry.listConnections(s=1, d=0)
+            if l_connections:
+                l_history = l_connections[0].listHistory(f=1)
+                l_mesh = list(filter(lambda x: type(x) == type(shape), l_history))
+                l_mesh = [str(mesh.nodeName()) for mesh in l_mesh]
+                if str(shape.nodeName()) in l_mesh:
+                    if not in_deformer.weightList[index]:
+                        initialize_weight_list(in_deformer.weightList[index], in_mesh)
+                    weight_list = in_deformer.weightList[index]
+                    wgt_indexes = map(lambda _: _.index(), weight_list.weights)
+                    [weight_list.weights[index].set(0) for index in range(n_points) if index not in wgt_indexes]
+                    return weight_list
 
 
 def initialize_weight_list(weight_list, in_mesh):
@@ -134,3 +135,7 @@ def open_copy_deformer_weights():
     ui = cdwUI.CopyDeformerWeightsUI()
     ui.transfer_function = transfer_deformer_weights
     ui.show()
+
+
+if __name__ == '__main__':
+    open_copy_deformer_weights()

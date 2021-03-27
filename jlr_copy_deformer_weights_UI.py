@@ -74,9 +74,10 @@ class CopyDeformerWeightsUI(object):
         self.object_source_list.currentItemChanged.connect(lambda: self.update_source_deformer_list())
         self.source_list_layout.addWidget(self.object_source_list)
 
-        self.deformer_source_list = QtWidgets.QListWidget(self.source_group_box)
-        self.deformer_source_list.setObjectName("deformer_source_list")
-        self.source_list_layout.addWidget(self.deformer_source_list)
+        self.deformer_source_tree = QtWidgets.QTreeWidget(self.source_group_box)
+        self.deformer_source_tree.setObjectName("deformer_source_tree")
+        self.deformer_source_tree.setHeaderHidden(True)
+        self.source_list_layout.addWidget(self.deformer_source_tree)
 
         self.source_layout.addLayout(self.source_list_layout)
         self.source_gb_layout.addLayout(self.source_layout, 0, 0, 1, 1)
@@ -218,7 +219,7 @@ class CopyDeformerWeightsUI(object):
         Fills the list of deformers according to the selected object in the source object list.
         """
         item = pm.PyNode(self.object_source_list.currentItem().text())
-        self.populate_list_widget(self.deformer_source_list, self.get_deformer_list(item))
+        self.populate_tree_widget(self.deformer_source_tree, self.get_deformer_list(item))
 
     def get_target_items(self):
         """
@@ -250,16 +251,37 @@ class CopyDeformerWeightsUI(object):
         :param item: PyNode with shapes
         :return: list
         """
-        deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear"]
+        deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear", "blendShape"]
         if pm.objExists(item):
             deformer_list = list()
             for shape in item.getShapes():
                 deformer_list.extend(pm.listHistory(shape, ha=1, il=1, pdo=1))
 
-            deformer_list = list(filter(lambda x: x.type() in deformer_types, deformer_list))
-            return deformer_list
+            valid_deformers = list()
+            for deformer in deformer_list:
+                if deformer.type() in deformer_types:
+                    valid_deformers.append(deformer)
+
+            return valid_deformers
         else:
             return list()
+
+    @staticmethod
+    def populate_tree_widget(tree_widget, l_items):
+        """
+        Fills a QListWidget with the passed list.
+        :param tree_widget: QListWidget
+        :param l_items: list of PyNodes.
+        """
+        tree_widget.blockSignals(True)
+        tree_widget.clear()
+        for item in l_items:
+            tree_widget_item = QtWidgets.QTreeWidgetItem()
+            tree_widget_item.setText(0, item.nodeName())
+            tree_widget_item.setWhatsThis(0, "deformer")
+            tree_widget.addTopLevelItem(tree_widget_item)
+
+        tree_widget.blockSignals(False)
 
     @staticmethod
     def populate_list_widget(list_widget, l_items):
@@ -286,13 +308,13 @@ class CopyDeformerWeightsUI(object):
 
         geo_source = self.object_source_list.currentItem()
         geo_target = self.object_target_list.currentItem()
-        deformer_source = self.deformer_source_list.currentItem()
+        deformer_source = self.deformer_source_tree.currentItem()
         deformer_target = self.deformer_target_list.currentItem()
 
         if geo_source and geo_target and deformer_source and deformer_target:
             data = {"geo_source": pm.PyNode(geo_source.text()),
                     "geo_target": pm.PyNode(geo_target.text()),
-                    "deformer_source": pm.PyNode(deformer_source.text()),
+                    "deformer_source": pm.PyNode(deformer_source.text(0)),
                     "deformer_target": pm.PyNode(deformer_target.text()),
                     "surface_association": "closestPoint",
                     "interface": self,

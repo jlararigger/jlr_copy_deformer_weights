@@ -138,4 +138,8 @@ def open_copy_deformer_weights():
 
 
 if __name__ == '__main__':
+    import sys
+    module_path = "D:/Development/Maya/jlr_copy_deformer_weights"
+    if module_path not in sys.path:
+        sys.path.append(module_path)
     open_copy_deformer_weights()

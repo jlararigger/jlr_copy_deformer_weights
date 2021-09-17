@@ -22,7 +22,13 @@
 #
 ##################################################################################
 
+import sys
 import pymel.core as pm
+
+if sys.version_info.major == 2:
+    from imp import reload
+else:
+    from importlib import reload
 
 
 def transfer_deformer_weights(geo_source, geo_target=None, deformer_source=None, deformer_target=None,
@@ -83,8 +89,12 @@ def transfer_deformer_weights(geo_source, geo_target=None, deformer_source=None,
     pm.skinPercent(skin_source, tmp_source, nrm=False, prw=100)
     skin_source.setNormalizeWeights(True)
     n_points = len(geo_source.getShape().getPoints())
-    [skin_source.wl[i].w[0].set(source_weight_list.weights[i].get()) for i in range(n_points)]
-    [skin_source.wl[i].w[1].set(1.0 - source_weight_list.weights[i].get()) for i in range(n_points)]
+    if deformer_source.type() == "blendShape":
+        [skin_source.wl[i].w[0].set(source_weight_list.baseWeights[i].get()) for i in range(n_points)]
+        [skin_source.wl[i].w[1].set(1.0 - source_weight_list.baseWeights[i].get()) for i in range(n_points)]
+    else:
+        [skin_source.wl[i].w[0].set(source_weight_list.weights[i].get()) for i in range(n_points)]
+        [skin_source.wl[i].w[1].set(1.0 - source_weight_list.weights[i].get()) for i in range(n_points)]
 
     if interface: interface.progress_bar_next()
     pm.copySkinWeights(ss=skin_source, ds=skin_target, nm=True, sa=surface_association)
@@ -113,6 +123,11 @@ def get_weight_list(in_deformer, in_mesh):
                 l_mesh = list(filter(lambda x: type(x) == type(shape), l_history))
                 l_mesh = [str(mesh.nodeName()) for mesh in l_mesh]
                 if str(shape.nodeName()) in l_mesh:
+
+                    if in_deformer.type() == "blendShape":
+                        weight_list = in_deformer.inputTarget[0].baseWeights
+                        return weight_list
+
                     if not in_deformer.weightList[index]:
                         initialize_weight_list(in_deformer.weightList[index], in_mesh)
                     weight_list = in_deformer.weightList[index]
@@ -138,7 +153,6 @@ def open_copy_deformer_weights():
 
 
 if __name__ == '__main__':
-    import sys
     module_path = "D:/Development/Maya/jlr_copy_deformer_weights"
     if module_path not in sys.path:
         sys.path.append(module_path)

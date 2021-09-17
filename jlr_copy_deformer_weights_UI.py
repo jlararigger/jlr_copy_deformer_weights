@@ -36,7 +36,7 @@ class CopyDeformerWeightsUI(object):
         self.delete_instances()
 
         self.maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
-        self.maya_main_window = wrapInstance(long(self.maya_main_window_ptr), QtWidgets.QMainWindow)
+        self.maya_main_window = wrapInstance(int(self.maya_main_window_ptr), QtWidgets.QMainWindow)
         self.dialog.setParent(self.maya_main_window)
         self.dialog.setWindowFlags(QtCore.Qt.Window)
 
@@ -251,7 +251,7 @@ class CopyDeformerWeightsUI(object):
         :param item: PyNode with shapes
         :return: list
         """
-        deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear", "blendShape"]
+        deformer_types = ["ffd", "wire", "cluster", "softMod", "deltaMush", "textureDeformer", "nonLinear"]
         if pm.objExists(item):
             deformer_list = list()
             for shape in item.getShapes():
